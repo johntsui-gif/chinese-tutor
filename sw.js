@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chinese-tutor-v4'; // <--- Change this to v2
+const CACHE_NAME = 'chinese-tutor-v5'; // <--- Change this to v2
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

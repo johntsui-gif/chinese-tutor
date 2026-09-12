@@ -1,7 +1,7 @@
 'use strict';
 // Bump VERSION whenever ANY of the three files changes. Deploy them together.
 // Assets are pinned as a set: keep old tabs on their worker until they close.
-const VERSION = '1.0.0';
+const VERSION = '3.5.0';
 const SCOPE = self.registration.scope;
 const PREFIX = 'read-chinese:' + SCOPE + ':';
 const CACHE = PREFIX + VERSION;

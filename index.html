@@ -5,237 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chinese Reading Tutor</title>
     
-    <!-- Client-side Document Parsing Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     
     <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --primary-color: #d32f2f; /* Bold Red */
-            --border-color: #000000;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        /* Bold Banner */
-        .banner {
-            width: 100%;
-            background-color: var(--primary-color);
-            color: #ffffff;
-            text-align: center;
-            padding: 25px 0;
-            font-size: 32px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            border-bottom: 6px solid var(--border-color);
-            margin-bottom: 40px;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 900px;
-            background: #ffffff;
-            padding: 40px;
-            border: 6px solid var(--border-color);
-            border-radius: 0px;
-            box-shadow: 12px 12px 0px var(--border-color);
-            margin-bottom: 50px;
-        }
-
-        h2 {
-            margin-top: 0;
-            font-size: 28px;
-            text-transform: uppercase;
-            border-bottom: 4px solid var(--primary-color);
-            display: inline-block;
-            padding-bottom: 5px;
-        }
-
-        /* Tablet Optimized Input */
+        :root { --bg-color: #ffffff; --text-color: #000000; --primary-color: #d32f2f; --border-color: #000000; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .banner { width: 100%; background-color: var(--primary-color); color: #ffffff; text-align: center; padding: 25px 0; font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; border-bottom: 6px solid var(--border-color); margin-bottom: 40px; }
+        .container { width: 90%; max-width: 900px; background: #ffffff; padding: 40px; border: 6px solid var(--border-color); box-shadow: 12px 12px 0px var(--border-color); margin-bottom: 50px; }
+        h2 { margin-top: 0; font-size: 28px; text-transform: uppercase; border-bottom: 4px solid var(--primary-color); display: inline-block; padding-bottom: 5px; }
         #input-view { display: flex; flex-direction: column; gap: 20px; }
-        
-        textarea {
-            width: 100%;
-            height: 350px; /* Taller for large blocks of text */
-            padding: 20px;
-            font-size: 24px; /* Much larger for tablet readability */
-            line-height: 1.6;
-            border: 4px solid var(--border-color);
-            resize: vertical;
-            box-sizing: border-box;
-            background-color: #fafafa;
-        }
+        textarea { width: 100%; height: 350px; padding: 20px; font-size: 24px; line-height: 1.6; border: 4px solid var(--border-color); resize: vertical; box-sizing: border-box; background-color: #fafafa; }
         textarea:focus { outline: none; border-color: var(--primary-color); }
-
-        /* Brutalist Buttons */
-        button {
-            background-color: var(--primary-color);
-            color: #ffffff;
-            border: 4px solid var(--border-color);
-            padding: 16px 32px;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 6px 6px 0px var(--border-color);
-            transition: all 0.1s ease;
-            text-transform: uppercase;
-        }
-        button:active {
-            transform: translate(6px, 6px);
-            box-shadow: 0px 0px 0px var(--border-color);
-        }
-        button.secondary {
-            background-color: #ffffff;
-            color: #000000;
-        }
-
-        /* File Upload Row */
-        .upload-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            background: #f0f0f0;
-            padding: 20px;
-            border: 4px solid var(--border-color);
-        }
-        
+        button { background-color: var(--primary-color); color: #ffffff; border: 4px solid var(--border-color); padding: 16px 32px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 6px 6px 0px var(--border-color); transition: all 0.1s ease; text-transform: uppercase; }
+        button:active { transform: translate(6px, 6px); box-shadow: 0px 0px 0px var(--border-color); }
+        button.secondary { background-color: #ffffff; color: #000000; }
+        .upload-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; background: #f0f0f0; padding: 20px; border: 4px solid var(--border-color); }
         input[type="file"] { display: none; }
-        .file-label {
-            background-color: #000000;
-            color: #ffffff;
-            padding: 12px 24px;
-            font-weight: bold;
-            border: 4px solid #000000;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 4px 4px 0px var(--primary-color);
-        }
+        .file-label { background-color: #000000; color: #ffffff; padding: 12px 24px; font-weight: bold; border: 4px solid #000000; cursor: pointer; text-transform: uppercase; box-shadow: 4px 4px 0px var(--primary-color); }
         .file-label:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px var(--primary-color); }
-
-        /* Playback View */
+        
         #playback-view { display: none; flex-direction: column; gap: 25px; }
-        
-        #text-display {
-            font-size: 36px; /* Huge for reading */
-            line-height: 2;
-            height: 500px;
-            overflow-y: auto;
-            padding: 30px;
-            border: 4px solid var(--border-color);
-            background: #ffffff;
-        }
-        
+        #text-display { font-size: 36px; line-height: 2; height: 500px; overflow-y: auto; padding: 30px; border: 4px solid var(--border-color); background: #ffffff; }
         .char { cursor: pointer; border-radius: 4px; padding: 2px 4px; }
-        .char.active {
-            background-color: var(--primary-color);
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        /* Controls */
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 20px;
-            background: #ffffff;
-            border: 4px solid var(--border-color);
-            box-shadow: 8px 8px 0px var(--border-color);
-            flex-wrap: wrap;
-        }
+        .char.active { background-color: var(--primary-color); color: #ffffff; font-weight: bold; }
         
-        .play-btn {
-            width: 64px;
-            height: 64px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            border-radius: 0; /* Boxy */
-        }
-        
-        input[type="range"] {
-            flex-grow: 1;
-            min-width: 200px;
-            height: 8px;
-            background: #000;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 24px;
-            height: 24px;
-            background: var(--primary-color);
-            border: 3px solid #000;
-            cursor: pointer;
-        }
-        
-        select {
-            padding: 12px;
-            border: 4px solid var(--border-color);
-            font-size: 16px;
-            font-weight: bold;
-            background: #fff;
-        }
-
-        .header { display: flex; justify-content: space-between; align-items: center; }
+        .controls { display: flex; align-items: center; gap: 20px; padding: 20px; background: #ffffff; border: 4px solid var(--border-color); box-shadow: 8px 8px 0px var(--border-color); flex-wrap: wrap; }
+        .play-btn { width: 64px; height: 64px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 28px; border-radius: 0; }
+        input[type="range"] { flex-grow: 1; min-width: 200px; height: 8px; background: #000; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: var(--primary-color); border: 3px solid #000; cursor: pointer; }
+        select { padding: 12px; border: 4px solid var(--border-color); font-size: 16px; font-weight: bold; background: #fff; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;}
     </style>
 </head>
 <body>
 
-<div class="banner">
-    Chinese Reading Tutor
-</div>
+<div class="banner">Chinese Reading Tutor</div>
 
 <div class="container">
-    <!-- INPUT VIEW -->
     <div id="input-view">
         <h2>Load Text</h2>
-        
         <div class="upload-row">
             <label class="file-label" for="file-upload">📂 Select Local File</label>
             <input type="file" id="file-upload" accept=".txt,.pdf,.doc,.docx" onchange="handleFileUpload(event)">
-            
-            <button class="secondary" onclick="handleGoogleDriveClick()">Google Drive / Docs</button>
+            <button class="secondary" onclick="alert('Google Drive integration requires a Google Cloud API key setup. Please download docs to your device first.')">Google Drive / Docs</button>
             <span id="upload-status" style="font-weight: bold; color: var(--primary-color);"></span>
         </div>
-
-        <textarea id="text-input" placeholder="Paste text here or use the buttons above to load a document..."></textarea>
-        
+        <textarea id="text-input" placeholder="Paste text here or upload a file..."></textarea>
         <button onclick="processText()">Generate Script ➔</button>
     </div>
 
-    <!-- PLAYBACK VIEW -->
     <div id="playback-view">
         <div class="header">
             <h2>Reading Script</h2>
+            <!-- Dialect Selection fixes the Chrome Google Translate Popup Issue -->
+            <select id="dialect-select" onchange="updateDialect()">
+                <option value="zh-CN">Simplified (China)</option>
+                <option value="zh-HK" selected>Traditional (Hong Kong)</option>
+                <option value="zh-TW">Traditional (Taiwan)</option>
+            </select>
             <button class="secondary" onclick="goBack()">Exit</button>
         </div>
         
-        <div id="text-display"></div>
+        <!-- The lang attribute here informs Chrome's Translate popup -->
+        <div id="text-display" lang="zh-HK"></div>
         
         <div class="controls">
             <button class="play-btn" id="play-pause-btn" onclick="togglePlay()">▶</button>
             <input type="range" id="scrub-bar" min="0" value="0" step="1">
-            
-            <select id="voice-select" onchange="updateVoice()"></select>
-            <select id="speed-select" onchange="updateSpeed()">
+            <select id="voice-select" onchange="updateSettings()"></select>
+            <select id="speed-select" onchange="updateSettings()">
                 <option value="0.5">0.5x</option>
                 <option value="0.75">0.75x</option>
                 <option value="1" selected>1.0x</option>
@@ -246,99 +85,81 @@
 </div>
 
 <script>
-    // Initialize PDF.js worker
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    // --- Document Parsing Logic ---
     async function handleFileUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const status = document.getElementById('upload-status');
         const textArea = document.getElementById('text-input');
         status.textContent = "Loading file...";
 
         try {
             if (file.name.endsWith('.txt')) {
-                const text = await file.text();
-                textArea.value = text;
-            } 
-            else if (file.name.endsWith('.docx')) {
+                textArea.value = await file.text();
+            } else if (file.name.endsWith('.docx')) {
                 const arrayBuffer = await file.arrayBuffer();
-                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                const result = await mammoth.extractRawText({ arrayBuffer });
                 textArea.value = result.value;
-            } 
-            else if (file.name.endsWith('.pdf')) {
+            } else if (file.name.endsWith('.pdf')) {
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
                 let fullPdfText = "";
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
-                    fullPdfText += pageText + "\n\n";
+                    fullPdfText += textContent.items.map(item => item.str).join(' ') + "\n\n";
                 }
                 textArea.value = fullPdfText;
             }
-            else {
-                alert("Unsupported file format.");
-            }
             status.textContent = "Loaded: " + file.name;
-        } catch (error) {
-            console.error("Error parsing file:", error);
-            status.textContent = "Error loading file.";
-        }
+        } catch (error) { status.textContent = "Error loading file."; }
     }
 
-    function handleGoogleDriveClick() {
-        alert("To parse documents directly from your Google Workspace, this application requires you to set up an OAuth Client ID in the Google Cloud Console and enable the Google Drive API. For now, please download your Google Doc as a .docx or .pdf and use the Local File button.");
-    }
-
-    // --- Tutor & Playback Logic ---
-    let fullTextArray = []; // Using an Array to handle Unicode Surrogate Pairs properly
-    let fullTextString = "";
+    let fullTextArray = []; 
     let synth = window.speechSynthesis;
     let utterance = null;
     let isPlaying = false;
     let currentIndex = 0;
     let availableVoices = [];
+    
+    // Fallback variables for Android Highlighting Bug
+    let fallbackHighlightTimer = null;
+    let usingNativeBoundary = false;
 
     function populateVoices() {
         availableVoices = synth.getVoices().filter(v => v.lang.includes('zh'));
         const voiceSelect = document.getElementById('voice-select');
         voiceSelect.innerHTML = '';
-        if (availableVoices.length === 0) {
-            voiceSelect.innerHTML = '<option>Loading voices...</option>';
-            return;
-        }
+        if (availableVoices.length === 0) return voiceSelect.innerHTML = '<option>Loading voices...</option>';
         availableVoices.forEach((voice, index) => {
             const option = document.createElement('option');
             option.value = index;
-            option.textContent = `${voice.name} ${voice.localService ? '(Offline)' : '(Online)'}`;
+            option.textContent = voice.name;
             voiceSelect.appendChild(option);
         });
     }
 
     populateVoices();
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = populateVoices;
+    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = populateVoices;
+
+    function updateDialect() {
+        const dialect = document.getElementById('dialect-select').value;
+        document.getElementById('text-display').setAttribute('lang', dialect);
+        if (isPlaying) playFrom(currentIndex);
     }
 
     function processText() {
         const input = document.getElementById('text-input').value.trim();
         if (!input) return;
-        
-        // Array.from splits strings by true unicode characters, fixing length bugs
         fullTextArray = Array.from(input); 
-        fullTextString = input;
         currentIndex = 0;
-        
         document.getElementById('input-view').style.display = 'none';
         document.getElementById('playback-view').style.display = 'flex';
         renderText();
         setupScrubBar();
-        
         if (availableVoices.length === 0) populateVoices();
+        updateDialect();
     }
 
     function goBack() {
@@ -366,8 +187,8 @@
             isPlaying = false;
             document.getElementById('play-pause-btn').textContent = "▶";
         } else {
-            if (synth.paused && currentIndex > 0) { synth.resume(); } 
-            else { playFrom(currentIndex); }
+            if (synth.paused && currentIndex > 0) synth.resume(); 
+            else playFrom(currentIndex);
             isPlaying = true;
             document.getElementById('play-pause-btn').textContent = "⏸";
         }
@@ -375,29 +196,35 @@
 
     function stopPlayback() {
         synth.cancel();
+        clearInterval(fallbackHighlightTimer);
         isPlaying = false;
         document.getElementById('play-pause-btn').textContent = "▶";
     }
 
     function playFrom(index) {
         synth.cancel();
+        clearInterval(fallbackHighlightTimer);
+        usingNativeBoundary = false;
+        
         if (index >= fullTextArray.length) index = 0;
         
-        // Reconstruct the remaining string from the unicode array
         let remainingText = fullTextArray.slice(index).join('');
         utterance = new SpeechSynthesisUtterance(remainingText);
-        utterance.lang = 'zh-CN'; 
-        utterance.rate = parseFloat(document.getElementById('speed-select').value);
+        
+        // Sync utterance language with the Dialect dropdown
+        utterance.lang = document.getElementById('dialect-select').value; 
+        const speedMultiplier = parseFloat(document.getElementById('speed-select').value);
+        utterance.rate = speedMultiplier;
         
         const voiceIndex = document.getElementById('voice-select').value;
         if (availableVoices[voiceIndex]) utterance.voice = availableVoices[voiceIndex];
 
+        // 1. Native Highlighting (Works on PC/iOS)
         utterance.onboundary = (event) => {
-            // Because we reconstructed the string from the array, 
-            // charIndex maps safely to our array offset
-            let absoluteIndex = index + event.charIndex;
+            usingNativeBoundary = true; // Signals Android that the native event is actually working
+            clearInterval(fallbackHighlightTimer);
             
-            // Safety check to ensure we don't jump out of bounds
+            let absoluteIndex = index + event.charIndex;
             if (absoluteIndex < fullTextArray.length) {
                 currentIndex = absoluteIndex;
                 highlightChar(absoluteIndex);
@@ -405,7 +232,34 @@
             }
         };
 
+        // 2. Android Chrome Fallback Highlighting
+        utterance.onstart = () => {
+            // Average Chinese reading pace is roughly 4.2 characters per second
+            const charsPerSecond = 4.2 * speedMultiplier; 
+            const msPerChar = 1000 / charsPerSecond;
+
+            fallbackHighlightTimer = setInterval(() => {
+                // If native boundary fires, kill this fallback loop immediately
+                if (usingNativeBoundary) {
+                    clearInterval(fallbackHighlightTimer);
+                    return;
+                }
+                
+                // If fallback is needed (Android), simulate the highlighting
+                if (synth.speaking && !synth.paused) {
+                    if (currentIndex < fullTextArray.length - 1) {
+                        currentIndex++;
+                        highlightChar(currentIndex);
+                        document.getElementById('scrub-bar').value = currentIndex;
+                    } else {
+                        clearInterval(fallbackHighlightTimer);
+                    }
+                }
+            }, msPerChar);
+        };
+
         utterance.onend = () => {
+            clearInterval(fallbackHighlightTimer);
             isPlaying = false;
             document.getElementById('play-pause-btn').textContent = "▶";
             currentIndex = fullTextArray.length;
@@ -421,7 +275,7 @@
         currentIndex = index;
         highlightChar(currentIndex);
         document.getElementById('scrub-bar').value = currentIndex;
-        if (isPlaying || synth.speaking) { playFrom(currentIndex); }
+        if (isPlaying || synth.speaking) playFrom(currentIndex);
     }
 
     function highlightChar(index) {
@@ -440,8 +294,7 @@
         scrubBar.addEventListener('input', (e) => jumpTo(parseInt(e.target.value)));
     }
 
-    function updateSpeed() { if (isPlaying) playFrom(currentIndex); }
-    function updateVoice() { if (isPlaying) playFrom(currentIndex); }
+    function updateSettings() { if (isPlaying) playFrom(currentIndex); }
 </script>
 </body>
 </html>

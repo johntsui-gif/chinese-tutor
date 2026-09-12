@@ -7,7 +7,6 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#1a73e8">
     <style>
-        /* [Same CSS as before] */
         :root { --bg-color: #f8f9fa; --text-color: #202124; --primary-color: #1a73e8; --highlight-bg: #c2e7ff; --container-bg: #ffffff; }
         body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { background: var(--container-bg); width: 100%; max-width: 800px; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -19,12 +18,13 @@
         #text-display { font-size: 28px; line-height: 1.8; height: 400px; overflow-y: auto; padding: 20px; border: 1px solid #dadce0; border-radius: 8px; background: #fff; }
         .char { cursor: pointer; border-radius: 4px; }
         .char.active { background-color: var(--highlight-bg); color: #001d35; font-weight: bold; }
-        .controls { display: flex; align-items: center; gap: 20px; padding: 15px; background: #f1f3f4; border-radius: 30px; }
-        .play-btn { width: 48px; height: 48px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        input[type="range"] { flex-grow: 1; }
+        .controls { display: flex; align-items: center; gap: 10px; padding: 15px; background: #f1f3f4; border-radius: 30px; flex-wrap: wrap; }
+        .play-btn { width: 48px; height: 48px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        input[type="range"] { flex-grow: 1; min-width: 150px; }
+        .control-group { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 500; }
+        select { padding: 6px; border-radius: 4px; border: 1px solid #dadce0; max-width: 200px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .back-btn { background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); padding: 6px 16px; }
-        #install-btn { display: none; background-color: #34a853; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -34,9 +34,6 @@
         <h2>Chinese Reading Tutor</h2>
         <textarea id="text-input" placeholder="Paste your Chinese text here..."></textarea>
         <button onclick="processText()">Submit & Generate Script</button>
-        
-        <!-- PWA Install Button -->
-        <button id="install-btn">⬇️ Install App to Tablet</button>
     </div>
 
     <div id="playback-view">
@@ -48,50 +45,57 @@
         <div class="controls">
             <button class="play-btn" id="play-pause-btn" onclick="togglePlay()">▶</button>
             <input type="range" id="scrub-bar" min="0" value="0" step="1">
-            <select id="speed-select" onchange="updateSpeed()">
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1" selected>1.0x</option>
-                <option value="1.25">1.25x</option>
-            </select>
+            
+            <div class="control-group">
+                <select id="voice-select" onchange="updateVoice()"></select>
+                <select id="speed-select" onchange="updateSpeed()">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1.0x</option>
+                    <option value="1.25">1.25x</option>
+                </select>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // 1. PWA & Service Worker Logic
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log("Service Worker Registered"))
-            .catch(err => console.error("Service Worker Failed", err));
+        navigator.serviceWorker.register('./sw.js');
     }
 
-    let deferredPrompt;
-    const installBtn = document.getElementById('install-btn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        installBtn.style.display = 'block'; // Show install button
-    });
-
-    installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                installBtn.style.display = 'none';
-            }
-            deferredPrompt = null;
-        }
-    });
-
-    // 2. Tutor Logic
     let fullText = "";
     let synth = window.speechSynthesis;
     let utterance = null;
     let isPlaying = false;
     let currentIndex = 0;
+    let availableVoices = [];
+
+    // Fetch and populate available Chinese voices
+    function populateVoices() {
+        availableVoices = synth.getVoices().filter(v => v.lang.includes('zh'));
+        const voiceSelect = document.getElementById('voice-select');
+        voiceSelect.innerHTML = '';
+        
+        if (availableVoices.length === 0) {
+            voiceSelect.innerHTML = '<option>Loading voices...</option>';
+            return;
+        }
+
+        availableVoices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            // Online/Network voices usually sound much better
+            option.textContent = `${voice.name} ${voice.localService ? '(Offline)' : '(Online)'}`;
+            voiceSelect.appendChild(option);
+        });
+    }
+
+    // Android Chrome requires this to reliably load voices
+    populateVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = populateVoices;
+    }
 
     function processText() {
         const input = document.getElementById('text-input').value.trim();
@@ -102,6 +106,9 @@
         document.getElementById('playback-view').style.display = 'flex';
         renderText(fullText);
         setupScrubBar(fullText.length);
+        
+        // Force voice load if empty
+        if (availableVoices.length === 0) populateVoices();
     }
 
     function goBack() {
@@ -150,6 +157,12 @@
         utterance = new SpeechSynthesisUtterance(remainingText);
         utterance.lang = 'zh-CN'; 
         utterance.rate = parseFloat(document.getElementById('speed-select').value);
+        
+        // Apply the explicitly selected voice
+        const voiceIndex = document.getElementById('voice-select').value;
+        if (availableVoices[voiceIndex]) {
+            utterance.voice = availableVoices[voiceIndex];
+        }
 
         utterance.onboundary = (event) => {
             let absoluteIndex = index + event.charIndex;
@@ -193,9 +206,8 @@
         scrubBar.addEventListener('input', (e) => jumpTo(parseInt(e.target.value)));
     }
 
-    function updateSpeed() {
-        if (isPlaying) playFrom(currentIndex);
-    }
+    function updateSpeed() { if (isPlaying) playFrom(currentIndex); }
+    function updateVoice() { if (isPlaying) playFrom(currentIndex); }
 </script>
 </body>
 </html>

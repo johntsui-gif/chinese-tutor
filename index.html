@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chinese Reading Tutor</title>
     
+    <!-- RESTORED: Manifest link for PWA installation -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#d32f2f">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     
@@ -17,9 +21,14 @@
         #input-view { display: flex; flex-direction: column; gap: 20px; }
         textarea { width: 100%; height: 350px; padding: 20px; font-size: 24px; line-height: 1.6; border: 4px solid var(--border-color); resize: vertical; box-sizing: border-box; background-color: #fafafa; }
         textarea:focus { outline: none; border-color: var(--primary-color); }
+        
         button { background-color: var(--primary-color); color: #ffffff; border: 4px solid var(--border-color); padding: 16px 32px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 6px 6px 0px var(--border-color); transition: all 0.1s ease; text-transform: uppercase; }
         button:active { transform: translate(6px, 6px); box-shadow: 0px 0px 0px var(--border-color); }
         button.secondary { background-color: #ffffff; color: #000000; }
+        
+        /* RESTORED: PWA Install Button Styling */
+        #install-btn { display: none; background-color: #34a853; margin-top: 10px; width: 100%; }
+        
         .upload-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; background: #f0f0f0; padding: 20px; border: 4px solid var(--border-color); }
         input[type="file"] { display: none; }
         .file-label { background-color: #000000; color: #ffffff; padding: 12px 24px; font-weight: bold; border: 4px solid #000000; cursor: pointer; text-transform: uppercase; box-shadow: 4px 4px 0px var(--primary-color); }
@@ -53,12 +62,14 @@
         </div>
         <textarea id="text-input" placeholder="Paste text here or upload a file..."></textarea>
         <button onclick="processText()">Generate Script ➔</button>
+        
+        <!-- RESTORED: The Install Button -->
+        <button id="install-btn">⬇️ Install App to Tablet</button>
     </div>
 
     <div id="playback-view">
         <div class="header">
             <h2>Reading Script</h2>
-            <!-- Dialect Selection fixes the Chrome Google Translate Popup Issue -->
             <select id="dialect-select" onchange="updateDialect()">
                 <option value="zh-CN">Simplified (China)</option>
                 <option value="zh-HK" selected>Traditional (Hong Kong)</option>
@@ -67,7 +78,6 @@
             <button class="secondary" onclick="goBack()">Exit</button>
         </div>
         
-        <!-- The lang attribute here informs Chrome's Translate popup -->
         <div id="text-display" lang="zh-HK"></div>
         
         <div class="controls">
@@ -85,6 +95,32 @@
 </div>
 
 <script>
+    // RESTORED: Service Worker & PWA Install Logic
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+    }
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block'; 
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
+            }
+            deferredPrompt = null;
+        }
+    });
+
+    // --- Core App Logic ---
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     async function handleFileUpload(event) {
@@ -123,7 +159,6 @@
     let currentIndex = 0;
     let availableVoices = [];
     
-    // Fallback variables for Android Highlighting Bug
     let fallbackHighlightTimer = null;
     let usingNativeBoundary = false;
 
@@ -211,7 +246,6 @@
         let remainingText = fullTextArray.slice(index).join('');
         utterance = new SpeechSynthesisUtterance(remainingText);
         
-        // Sync utterance language with the Dialect dropdown
         utterance.lang = document.getElementById('dialect-select').value; 
         const speedMultiplier = parseFloat(document.getElementById('speed-select').value);
         utterance.rate = speedMultiplier;
@@ -219,9 +253,8 @@
         const voiceIndex = document.getElementById('voice-select').value;
         if (availableVoices[voiceIndex]) utterance.voice = availableVoices[voiceIndex];
 
-        // 1. Native Highlighting (Works on PC/iOS)
         utterance.onboundary = (event) => {
-            usingNativeBoundary = true; // Signals Android that the native event is actually working
+            usingNativeBoundary = true; 
             clearInterval(fallbackHighlightTimer);
             
             let absoluteIndex = index + event.charIndex;
@@ -232,20 +265,16 @@
             }
         };
 
-        // 2. Android Chrome Fallback Highlighting
         utterance.onstart = () => {
-            // Average Chinese reading pace is roughly 4.2 characters per second
             const charsPerSecond = 4.2 * speedMultiplier; 
             const msPerChar = 1000 / charsPerSecond;
 
             fallbackHighlightTimer = setInterval(() => {
-                // If native boundary fires, kill this fallback loop immediately
                 if (usingNativeBoundary) {
                     clearInterval(fallbackHighlightTimer);
                     return;
                 }
                 
-                // If fallback is needed (Android), simulate the highlighting
                 if (synth.speaking && !synth.paused) {
                     if (currentIndex < fullTextArray.length - 1) {
                         currentIndex++;
